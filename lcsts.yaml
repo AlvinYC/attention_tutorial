@@ -1,5 +1,5 @@
-data: '/home/linjunyang/data/lcsts/data/'
-logF: 'experiments/lcsts/'
+data: '/home/workspace/dataset_nlp/lcsts/savedata/'
+logF: 'log/lcsts/'
 epoch: 20
 batch_size: 64
 optim: 'adam'
