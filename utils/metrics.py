@@ -45,7 +45,8 @@ def rouge(reference, candidate, log_path, print_log, config):
 
     for i in range(len(reference)):
         with codecs.open(ref_dir+"%06d_reference.txt" % i, 'w', 'utf-8') as f:
-            f.write(" ".join(reference[i]).replace(' <\s> ', '\n') + '\n')
+            f.write(" ".join(reference[i]).replace(' <\s> ', '\n').replace('', 'UNK') + '\n')
+            #f.write(" ".join(reference[i]).replace(' <\s> ', '\n') + '\n')
         with codecs.open(cand_dir+"%06d_candidate.txt" % i, 'w', 'utf-8') as f:
             f.write(" ".join(candidate[i]).replace(' <\s> ', '\n').replace('<unk>', 'UNK') + '\n')
 
