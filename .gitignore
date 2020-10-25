@@ -7,6 +7,9 @@
 # alvin model log
 log/
 
+# alvin Rouge RELEASE-1.5.5 folder
+RELEASE-1.5.5/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
