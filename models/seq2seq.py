@@ -107,7 +107,8 @@ class seq2seq(nn.Module):
 
         #  (1b) Initialize for the decoder.
         def var(a):
-            return torch.tensor(a, requires_grad=False)
+            #return torch.tensor(a, requires_grad=False)
+            return a.clone().detach().requires_grad_(False)
 
         def rvar(a):
             return var(a.repeat(1, beam_size, 1))
