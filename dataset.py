@@ -46,10 +46,10 @@ def load_dataset_lcsts(batch_size,macbook=False,filename=None):
 
     # src do not contain <sos> <eos> , need manual build specials
     # according to Ian's Global-Encoding code, we have the following defintion
-    # PAD = 0 PAD_WORD = '<blank>'
-    # UNK = 1 UNK_WORD = '<unk> '
-    # BOS = 2 BOS_WORD = '<s>'
-    # EOS = 3 EOS_WORD = '</s>'    
+    # PAD = 0 PAD_WORD = '<blank>'  torchtext default = '<pad>'
+    # UNK = 1 UNK_WORD = '<unk> '   torchtext default = '<unk>'
+    # BOS = 2 BOS_WORD = '<s>'      torchtext default = '<sos>'
+    # EOS = 3 EOS_WORD = '</s>'     torchtext default = '<eos>'
     # since torchtext use <unk> as vocabulary index 0, <blank> as 1
     # we will get different pad value (numerical), Ian's Global-Encodng pad = 0, torchtext pad = 1
 
