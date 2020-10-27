@@ -125,9 +125,8 @@ def train_model(model, train_iter, val_iter, lcsts_field, optim, epoch, params):
             src = src.cuda()
             tgt = tgt.cuda()
             src_len = src_len.cuda()
-        lengths, indices = torch.sort(src_len, dim=0, descending=True)
-        src = torch.index_select(src, dim=0, index=indices)
-        tgt = torch.index_select(tgt, dim=0, index=indices)
+        # Ian's Global-Encoding need sort within batch, torchtext BucketIterator automatically finish
+        lengths = src_len
         dec = tgt[:, :-1]
         targets = tgt[:, 1:]
 
