@@ -25,14 +25,14 @@ def reverse_field(this_example):
 
 def load_dataset_lcsts(batch_size,macbook=False,filename=None):
     filename = './lcsts_xml/PART_I_10000.txt' if filename == None else filename
-    TRG = Field(tokenize=list, init_token='<s>', eos_token='</s>', pad_token='<blank>',include_lengths=False)
+    TGT = Field(tokenize=list, init_token='<s>', eos_token='</s>', pad_token='<blank>',include_lengths=False)
     SRC = Field(tokenize=list, pad_token='<blank>', include_lengths=False, preprocessing=reverse_field)
-    TRG_LEN = Field(sequential=False,use_vocab=False)
+    TGT_LEN = Field(sequential=False,use_vocab=False)
     SRC_LEN = Field(sequential=False,use_vocab=False)
-    TRG_ORI = Field(sequential=False)
+    TGT_ORI = Field(sequential=False)
     SRC_ORI = Field(sequential=False)
 
-    fields = [('trg',TRG),('src',SRC),('trg_len',TRG_LEN),('src_len',SRC_LEN),('trg_ori',TRG_ORI),('src_ori',SRC_ORI)] 
+    fields = [('tgt',TGT),('src',SRC),('tgt_len',TGT_LEN),('src_len',SRC_LEN),('tgt_ori',TGT_ORI),('src_ori',SRC_ORI)] 
     lcsts_list = get_xmllcsts(filename)
 
     examples = list(map(lambda x :Example.fromlist([x[0],x[1],str(len(x[0])),str(len(x[1])),x[0],x[1]],fields),lcsts_list))
@@ -54,11 +54,11 @@ def load_dataset_lcsts(batch_size,macbook=False,filename=None):
     # we will get different pad value (numerical), Ian's Global-Encodng pad = 0, torchtext pad = 1
 
     SRC.build_vocab(train.src, min_freq=2, specials=['<blank>','<unk>','<s>','</s>'])
-    TRG.build_vocab(train.trg, max_size=10000, specials=['<blank>','<unk>','<s>','</s>'])
-    TRG_ORI.build_vocab(all_data.trg_ori)
+    TGT.build_vocab(train.tgt, max_size=10000, specials=['<blank>','<unk>','<s>','</s>'])
+    TGT_ORI.build_vocab(all_data.tgt_ori)
     SRC_ORI.build_vocab(all_data.src_ori)
 
-    LCSTS_FIELD = {'src':SRC, 'trg':TRG, 'src_ori':SRC_ORI, 'trg_ori':TRG_ORI}
+    LCSTS_FIELD = {'src':SRC, 'tgt':TGT, 'src_ori':SRC_ORI, 'tgt_ori':TGT_ORI}
     train_iter, val_iter, test_iter = BucketIterator.splits(
         (train, val, test), batch_sizes=(batch_size,batch_size,batch_size), repeat=False, shuffle=False, sort_key=lambda x: len(x.src))
     
