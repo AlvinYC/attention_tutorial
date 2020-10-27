@@ -18,7 +18,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-
+from dataset import load_dataset_lcsts
 
 parser = argparse.ArgumentParser(description='train.py')
 opts.model_opts(parser)
@@ -36,7 +36,7 @@ if use_cuda:
     torch.cuda.manual_seed(opt.seed)
     torch.backends.cudnn.benchmark = True
 
-
+'''
 def load_data():
     print('loading data...\n')
     data = pickle.load(open(config.data+'data.pkl', 'rb'))
@@ -52,7 +52,7 @@ def load_data():
 
     trainloader = torch.utils.data.DataLoader(dataset=trainset,
                                               batch_size=config.batch_size,
-                                              shuffle=True,
+                                              shuffle=False,
                                               num_workers=0,
                                               collate_fn=utils.padding)
     if hasattr(config, 'valid_batch_size'):
@@ -68,7 +68,7 @@ def load_data():
     return {'trainset': trainset, 'validset': validset,
             'trainloader': trainloader, 'validloader': validloader,
             'src_vocab': src_vocab, 'tgt_vocab': tgt_vocab}
-
+'''
 
 
 def build_model(checkpoints, print_log):
@@ -111,13 +111,14 @@ def build_model(checkpoints, print_log):
     return model, optim, print_log
 
 
-def train_model(model, data, optim, epoch, params):
 
+def train_model(model, train_iter, val_iter, lcsts_field, optim, epoch, params):
     model.train()
-    trainloader = data['trainloader']
 
-    for src, tgt, src_len, tgt_len, original_src, original_tgt in trainloader:
-
+    for train_batch in train_iter:
+        src = train_batch.src.T
+        tgt = train_batch.tgt.T
+        src_len = train_batch.src_len
         model.zero_grad()
 
         if config.use_cuda:
@@ -141,8 +142,9 @@ def train_model(model, data, optim, epoch, params):
                 loss, outputs = model(src, lengths, dec, targets)
             pred = outputs.max(2)[1]
             targets = targets.t()
-            num_correct = pred.eq(targets).masked_select(targets.ne(utils.PAD)).sum().item()
-            num_total = targets.ne(utils.PAD).sum().item()
+            BLANK = lcsts_field['src'].vocab.stoi['<black>']
+            num_correct = pred.eq(targets).masked_select(targets.ne(BLANK)).sum().item()
+            num_total = targets.ne(BLANK).sum().item()
             if config.max_split == 0:
                 loss = torch.sum(loss) / num_total
                 loss.backward()
@@ -168,7 +170,8 @@ def train_model(model, data, optim, epoch, params):
                           % (epoch, params['report_loss'], time.time()-params['report_time'],
                              params['updates'], params['report_correct'] * 100.0 / params['report_total']))
             print('evaluating after %d updates...\r' % params['updates'])
-            score = eval_model(model, data, params)
+            score = eval_model(model, val_iter, lcsts_field, params)
+
             for metric in config.metrics:
                 params[metric].append(score[metric])
                 if score[metric] >= max(params[metric]):
@@ -185,16 +188,20 @@ def train_model(model, data, optim, epoch, params):
     optim.updateLearningRate(score=0, epoch=epoch)
 
 
-def eval_model(model, data, params):
+def eval_model(model, val_iter, lcsts_field, params):
 
     model.eval()
     reference, candidate, source, alignments = [], [], [], []
-    count, total_count = 0, len(data['validset'])
-    validloader = data['validloader']
-    tgt_vocab = data['tgt_vocab']
 
+    count, total_count = 0, len(val_iter)*config.batch_size
 
-    for src, tgt, src_len, tgt_len, original_src, original_tgt in validloader:
+    for val_batch in val_iter:
+
+        src = val_batch.src.T
+        tgt = val_batch.tgt.T
+        original_src = val_batch.src_ori
+        original_tgt = val_batch.tgt_ori
+        src_len = val_batch.src_len
 
         if config.use_cuda:
             src = src.cuda()
@@ -205,10 +212,10 @@ def eval_model(model, data, params):
                 samples, alignment, weight = model.beam_sample(src, src_len, beam_size=config.beam_size, eval_=True)
             else:
                 samples, alignment = model.sample(src, src_len)
-
-        candidate += [tgt_vocab.convertToLabels(s, utils.EOS) for s in samples]
-        source += original_src
-        reference += original_tgt
+        EOS = lcsts_field['src'].vocab.stoi['</s>']
+        candidate += [s[0:s.index(EOS)] for s in samples]
+        source += (list(map(lambda x: lcsts_field['src_ori'].vocab.itos[x], original_src)))
+        reference += (list(map(lambda x: lcsts_field['tgt_ori'].vocab.itos[x], original_tgt)))
         if alignment is not None:
             alignments += [align for align in alignment]
 
@@ -220,7 +227,8 @@ def eval_model(model, data, params):
         for s, c, align in zip(source, candidate, alignments):
             cand = []
             for word, idx in zip(c, align):
-                if word == utils.UNK_WORD and idx < len(s):
+                UNK = lcsts_field['src'].vocab.stoi['<unk>']
+                if word == UNK and idx < len(s):
                     try:
                         cand.append(s[idx])
                     except:
@@ -292,7 +300,12 @@ def main():
     else:
         checkpoints = None
 
-    data = load_data()
+    #data = load_data()
+    lcsts_path = '/Users/alvin/workspace/dataset_nlp/lcsts/LCSTS_DATA_XML/PART_I_10000.txt'
+    train_iter, val_iter, test_iter, LCSTS_FIELD = load_dataset_lcsts(batch_size=5, filename=lcsts_path)
+    config.src_vocab_size = len(LCSTS_FIELD['src'].vocab)
+    config.tgt_vocab_size = len(LCSTS_FIELD['tgt'].vocab)
+
     print_log, log_path = build_log()
     model, optim, print_log = build_model(checkpoints, print_log)
     # scheduler
@@ -311,11 +324,11 @@ def main():
             if config.schedule:
                 scheduler.step()
                 print("Decaying learning rate to %g" % scheduler.get_lr()[0])
-            train_model(model, data, optim, i, params)
+            train_model(model, train_iter, val_iter, LCSTS_FIELD , optim, i, params)
         for metric in config.metrics:
             print_log("Best %s score: %.2f\n" % (metric, max(params[metric])))
     else:
-        score = eval_model(model, data, params)
+        score = eval_model(model, val_iter, LCSTS_FIELD, params)
 
 
 if __name__ == '__main__':
