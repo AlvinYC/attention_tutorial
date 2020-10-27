@@ -60,7 +60,10 @@ def load_dataset_lcsts(batch_size,macbook=False,filename=None):
 
     LCSTS_FIELD = {'src':SRC, 'tgt':TGT, 'src_ori':SRC_ORI, 'tgt_ori':TGT_ORI}
     train_iter, val_iter, test_iter = BucketIterator.splits(
-        (train, val, test), batch_sizes=(batch_size,batch_size,batch_size), repeat=False, shuffle=False, sort_key=lambda x: len(x.src))
+        (train, val, test), batch_sizes=(batch_size,batch_size,batch_size), 
+        repeat=False, shuffle=False, 
+        sort_key=lambda x: len(x.src),
+        sort_within_batch=True)
     
     return train_iter, val_iter, test_iter, LCSTS_FIELD
 
