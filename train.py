@@ -142,7 +142,7 @@ def train_model(model, train_iter, val_iter, lcsts_field, optim, epoch, params):
                 loss, outputs = model(src, lengths, dec, targets)
             pred = outputs.max(2)[1]
             targets = targets.t()
-            BLANK = lcsts_field['src'].vocab.stoi['<black>']
+            BLANK = lcsts_field['src'].vocab.stoi['<blank>']
             num_correct = pred.eq(targets).masked_select(targets.ne(BLANK)).sum().item()
             num_total = targets.ne(BLANK).sum().item()
             if config.max_split == 0:
