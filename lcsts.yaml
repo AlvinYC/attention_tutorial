@@ -1,7 +1,7 @@
 data: '/Users/alvin/workspace/dataset_nlp/lcsts/savedata/'
 logF: 'log/lcsts/'
 epoch: 20
-batch_size: 64
+batch_size: 5
 optim: 'adam'
 cell: 'lstm'
 attention: 'luong_gate'
@@ -16,7 +16,7 @@ enc_num_layers: 3
 bidirectional: True
 dropout: 0.0
 max_time_step: 50
-eval_interval: 10000
+eval_interval: 10
 save_interval: 3000
 metrics: ['rouge']
 shared_vocab: True
